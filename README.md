@@ -34,10 +34,14 @@ Follow [these](https://docs.docker.com/compose/install/) instructions to setup `
 
 3) Open jupyter
 
-If step two runs correctly, you should see a link a juptyer notebook link in the terminal, e.g.:
+If step two runs correctly, you should see a jupyter notebook link in the terminal, e.g. something like:
 
 ```bash
-
+jupyter_1  |     To access the notebook, open this file in a browser:
+jupyter_1  |         file:///root/.local/share/jupyter/runtime/nbserver-1-open.html
+jupyter_1  |     Or copy and paste one of these URLs:
+jupyter_1  |         http://9d64b75abc42:8888/?token=0af3923a75a86bb5926d66d670a9b31aa92e09d190772c1b
+jupyter_1  |      or http://127.0.0.1:8888/?token=0af3923a75a86bb5926d66d670a9b31aa92e09d190772c1b
 ```
 
 Copy-paste the link into a browser to open jupyter.
@@ -54,7 +58,7 @@ You can then use Python or SQL for further analysis, e.g.:
 
 ```python
 
-fa.run_sql("select * from matches")
+fa.run_sql("""select * from matches""")
 
 ```
 
@@ -76,12 +80,12 @@ PG_HOST=localhost pipenv run jupyter notebook
 
 ### Decisions
 
-- `lxml` is faster and more efficient when parsing xml than `elementtree`
+- `lxml` is faster and more efficient when parsing xml than `ElementTree`
 
 - `TfidfVectorizer` is [faster](https://towardsdatascience.com/fuzzy-matching-at-scale-84f2bfd0c536) than standard 
 fuzzy matching techniques.
 
-- `docker-compose` makes results easier to reproduce on other machines.
+- `docker-compose` makes analysis easier to reproduce on other machines.
 
 ### TODO
 
@@ -92,8 +96,8 @@ vs
 https://en.wikipedia.org/wiki/Apollo_13_(film)
 ```
 
-- Persist db results to volume
+- Persist db results to volume so you don't have to run analysis from scratch each time.
 
-- Add pytests
+- Add pytests.
 
-- Add threshold for revenue to budget ratios; e.g. minimum budge of 10,000 dollars.
+- Add threshold for revenue to budget ratios; e.g. minimum budget of 10,000 dollars.
