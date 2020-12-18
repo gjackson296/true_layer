@@ -7,12 +7,15 @@ verify_ssl = true
 
 [packages]
 pandas = "*"
-requests = "*"
 lxml = "*"
 pyarrow = "*"
 sklearn = "*"
 sparse-dot-topn = "*"
 nltk = "*"
+jupyter = "*"
+sqlalchemy = "*"
+psycopg2 = "*"
+
 
 [requires]
 python_version = "3.6"
