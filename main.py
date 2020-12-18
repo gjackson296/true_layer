@@ -13,62 +13,6 @@ logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 def run():
 
 
-    # Question 2a
-    meta_data['ratio'] = meta_data[REVENUE] / meta_data[BUDGET]
-    meta_data['ratio'] = meta_data['ratio'].replace([np.inf, -np.inf], np.nan)
-
-    # Question 2b
-    #import xml.etree.ElementTree as ET
-    #tree = ET.parse(WIKI_DATA / 'enwiki-latest-abstract.xml')
-    # TODO pre-cache results if it's slow?
-
-    # ITERPARSE METHOD
-    # TODO investigate Parser Target alternative
-    # get an iterable
-    context = etree.iterparse(
-        source=str(WIKI_DATA / 'enwiki-latest-abstract.xml'),
-        # If you let all tags through then:
-        #   PRO: you can clear the element to save memory
-        #   CON: clearing elements means the process is about twice as long
-        #tag=['title', 'url', 'abstract']
-    )
-
-    # TODO delete?
-    # # turn it into an iterator
-    # context = iter(context)
-    #
-    # # get the root element
-    # event, root = context.__next__()
-
-    titles, urls, abstracts = [], [], []
-    for event, elem in context:
-        if elem.tag == 'title':
-            titles.append(elem.text)
-        elif elem.tag == 'url':
-            urls.append(elem.text)
-        elif elem.tag == 'abstract':
-            abstracts.append(elem.text)
-
-            if len(urls) > 0 and len(urls) % 10_000 == 0:
-                logging.info(f'len {len(urls)} cf {len(urls) % 100_000}')
-                # TODO remove tmp limit
-                break
-
-        else:
-
-            elem.clear(keep_tail=True)
-
-    results = pd.DataFrame.from_dict({
-        'title': titles,
-        'url': urls,
-        'abstracts': abstracts
-    })
-
-    # Tidy
-    results['title'] = results['title'].str.strip('Wikipedia: ')
-
-    # Cache
-    results.to_parquet('/tmp/imdb_data.parquet')
 
     # MATCHING
     # Have: imdb and wiki
