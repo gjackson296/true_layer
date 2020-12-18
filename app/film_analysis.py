@@ -15,8 +15,8 @@ logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 
 
 class FilmAnalysis:
-    IMDB_DATA = pathlib.Path('../data/imdb')
-    WIKI_DATA = pathlib.Path('../data/wiki')
+    IMDB_DATA = pathlib.Path('data/imdb')
+    WIKI_DATA = pathlib.Path('data/wiki')
 
     def __init__(self, db_user, db_pass, db_host, db_name, db_port):
 
@@ -66,14 +66,14 @@ class FilmAnalysis:
         before = len(data)
         data = data.drop_duplicates()
         after = len(data)
-        logging.info(f"Removed {before-after:,} rows (from {before} to {after}) by de-duplicating entire rows.")
+        logging.info(f"Removed {before-after:,} rows (from {before:,} to {after:,}) by de-duplicating entire rows.")
 
         # Drop nan ids
         before = len(data)
         filter_id_is_nan = data[IMDB_ID].isna()
         data = data.loc[~filter_id_is_nan]
         after = len(data)
-        logging.info(f"Removed {before-after:,} rows (from {before} to {after}) by removing NaN '{IMDB_ID}'s.")
+        logging.info(f"Removed {before-after:,} rows (from {before:,} to {after:,}) by removing NaN '{IMDB_ID}'s.")
 
         # Check primary key
         pkey = IMDB_ID
@@ -97,7 +97,7 @@ class FilmAnalysis:
 
         # Keep top n
         data = data.sort_values(by=col, ascending=False).head(top_n)
-        logging.info(f"Keep top {top_n} by '{col}'")
+        logging.info(f"Keep top {top_n:,} by '{col}'")
 
         return data
 
@@ -125,7 +125,7 @@ class FilmAnalysis:
 
             # Give an idea of progress
             if len(titles) % 100_000 == 0:
-                logging.info(f"Processed {len(titles)} entries.")
+                logging.info(f"Processed {len(titles):,} entries.")
 
             if elem.tag == 'title':
                 titles.append(elem.text)
@@ -198,12 +198,17 @@ class FilmAnalysis:
     def write_matches_to_pg(self, matches, if_exists='fail'):
 
         with self.engine.connect() as conn:
-            matches.to_sql('matches', conn, if_exists=if_exists)
+            matches.to_sql('matches', conn, if_exists=if_exists, index_label=IMDB_ID)
+
+        logging.info(f"Wrote {len(matches):,} to postgres.")
+
 
     def read_matches_from_pg(self):
 
         with self.engine.connect() as conn:
-            matches = pd.read_sql('matches', conn)
+            matches = pd.read_sql('matches', conn, index_col=IMDB_ID)
+
+        logging.info(f"Read {len(matches):,} from postgres.")
 
         return matches
 
