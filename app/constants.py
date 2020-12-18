@@ -1,0 +1,5 @@
+ID = 'id'
+IMDB_ID = 'imdb_id'
+ORIGINAL_TITLE = 'original_title'
+BUDGET = 'budget'
+REVENUE = 'revenue'
