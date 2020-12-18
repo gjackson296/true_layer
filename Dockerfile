@@ -4,9 +4,9 @@ WORKDIR /code
 
 RUN pip install pipenv
 
-RUN pipenv install
-
 COPY . .
 
+RUN pipenv install
+
 EXPOSE 8888
-CMD [ "jupyter-notebook", "--ip='*'", "--allow-root", "notebooks"]
+CMD ["pipenv", "run", "jupyter-notebook", "--ip='*'", "--allow-root"]

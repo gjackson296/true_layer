@@ -22,9 +22,9 @@ class FilmAnalysis:
         self.engine = create_engine(f'postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}')
         self.data_folder = data_folder or self.DEFAULT_DATA_FOLDER
         self.imdb = self._etl_imdb()
-        self.wiki = self._etl_wiki()
+        #self.wiki = self._etl_wiki()
 
-    def _etl_imdb(self, filepath='movies_metadata.csv', top_n=10_000):
+    def _etl_imdb(self, filepath='movies_metadata.csv', top_n=1_000):
         """
         Load and clean imdb data
         """
@@ -36,7 +36,8 @@ class FilmAnalysis:
             IMDB_ID2: str,
             IMDB_ORIGINAL_TITLE: str,
             IMDB_BUDGET: float,
-            IMDB_REVENUE: float
+            IMDB_REVENUE: float,
+            IMDB_PROD_COMP: str
         }
 
         # Read raw data
@@ -184,7 +185,7 @@ class FilmAnalysis:
         col_idx = matched.columns.get_loc(col)
         matched.iloc[imdb_idx, col_idx] = wiki_idx
         # Add wiki information
-        matched = matched.set_index(col).join(self.wiki, how='left')
+        matched = matched.set_index(col).join(self.wiki.drop(columns=WIKI_TITLE), how='left')
 
         return matched
 
@@ -196,24 +197,11 @@ class FilmAnalysis:
         logging.info(f"Wrote {len(matches):,} to postgres.")
 
 
-    def read_matches_from_pg(self):
+    def run_sql(self, sql):
 
         with self.engine.connect() as conn:
-            matches = pd.read_sql('matches', conn, index_col=IMDB_ID)
+            data = pd.read_sql(sql, conn)
 
-        logging.info(f"Read {len(matches):,} from postgres.")
+        logging.info(f"Read {len(data):,} from postgres.")
 
-        return matches
-
-if __name__ == '__main__':
-    fa = FilmAnalysis(
-        db_user='db_user',
-        db_pass='db_pass',
-        db_host=os.environ.get('PG_HOST') or 'pg',
-        db_name='data',
-        db_port=5432,
-        data_folder=pathlib.Path('../data')
-    )
-
-    matches = fa.match_imdb_to_wiki()
-    fa.write_matches_to_pg(matches, if_exists='replace')
+        return data
