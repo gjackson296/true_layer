@@ -42,7 +42,7 @@ class FilmAnalysis:
             IMDB_ORIGINAL_TITLE: str,
             IMDB_BUDGET: float,
             IMDB_REVENUE: float,
-            IMDB_PROD_COMP: str
+            #IMDB_PROD_COMP: str
         }
 
         # Read raw data
@@ -125,13 +125,14 @@ class FilmAnalysis:
 
             if elem.tag == 'title':
                 titles.append(elem.text)
-                # Give an idea of progress
-                if len(titles) % 500_000 == 0:
-                    logging.info(f"Processed {len(titles):,} entries.")
             elif elem.tag == 'url':
                 urls.append(elem.text)
             elif elem.tag == 'abstract':
                 abstracts.append(elem.text)
+                # Give an idea of progress
+                if len(abstracts) % 500_000 == 0:
+                    logging.info(f"Processed {len(abstracts):,} entries.")
+                    break
             else:
                 elem.clear(keep_tail=True)
 

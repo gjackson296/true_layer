@@ -96,6 +96,8 @@ vs
 https://en.wikipedia.org/wiki/Apollo_13_(film)
 ```
 
+- Add production company info
+
 - Persist db results to volume so you don't have to run analysis from scratch each time.
 
 - Add pytests.
