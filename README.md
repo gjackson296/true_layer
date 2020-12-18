@@ -10,8 +10,8 @@ App to analyse imdb movies with the highest revenue-to-budget ratio.
 
 Get and unpack wiki and imdb data from these locations: 
 
-https://dumps.wikimedia.org/enwiki/latest/enwiki-latest-abstract.xml.gz (722Mb)
-https://www.kaggle.com/rounakbanik/the-movies-dataset/version/7#movies_metadata.csv (228Mb)
+    https://dumps.wikimedia.org/enwiki/latest/enwiki-latest-abstract.xml.gz (722Mb)
+    https://www.kaggle.com/rounakbanik/the-movies-dataset/version/7#movies_metadata.csv (228Mb)
 
 And place these two files in the data folder in this repo, so it should look like:
 

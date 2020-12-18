@@ -15,16 +15,21 @@ logging.basicConfig(format='%(asctime)s %(name)s %(message)s', level=logging.INF
 
 
 class FilmAnalysis:
+    """
+    Top performing imdb films
+    """
+
     DEFAULT_DATA_FOLDER = pathlib.Path('data')
 
-    def __init__(self, db_user, db_pass, db_host, db_name, db_port, data_folder = None):
+    def __init__(self, db_user: str, db_pass: str, db_host: str, db_name:str, db_port: int,
+                 data_folder: pathlib.Path=None) -> None:
 
         self.engine = create_engine(f'postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}')
         self.data_folder = data_folder or self.DEFAULT_DATA_FOLDER
         self.imdb = self._etl_imdb()
-        #self.wiki = self._etl_wiki()
+        self.wiki = self._etl_wiki()
 
-    def _etl_imdb(self, filepath='movies_metadata.csv', top_n=1_000):
+    def _etl_imdb(self, filepath: str='movies_metadata.csv', top_n: int=1_000) -> pd.DataFrame:
         """
         Load and clean imdb data
         """
@@ -100,41 +105,34 @@ class FilmAnalysis:
         return data
 
 
-    def _etl_wiki(self, filename='enwiki-latest-abstract.xml'):
+    def _etl_wiki(self, filename: str='enwiki-latest-abstract.xml') -> pd.DataFrame:
         """
         Load wiki data
 
         Note on reducing memory footprint:
             We don't pass a 'tag' arg to iterparse(). If we did, the 'elem.clear(keep_tail=True)'
-            path below would never be reached, and so lots of tree elements we don't need would be parsed.
-            TODO investigate Parser Target alternative approach which use less CPU/RAM.
+            path below would never be reached, so lots of tree elements we don't need would be parsed.
+            TODO investigate Parser Target alternative approach which might use less CPU/RAM.
         """
 
         logging.info("LOAD WIKI")
 
         context = etree.iterparse(source=str(self.data_folder / filename))
 
-        # TODO count URL so you can show progress? Cache results?
-
-        # Cache the data we need
+        # Cache only the tags we need
         titles, urls, abstracts = [], [], []
-        counter = 0
         for event, elem in context:
 
             if elem.tag == 'title':
                 titles.append(elem.text)
-
                 # Give an idea of progress
                 if len(titles) % 500_000 == 0:
                     logging.info(f"Processed {len(titles):,} entries.")
-
             elif elem.tag == 'url':
                 urls.append(elem.text)
             elif elem.tag == 'abstract':
                 abstracts.append(elem.text)
-
             else:
-
                 elem.clear(keep_tail=True)
 
         # Prepare output
@@ -151,7 +149,7 @@ class FilmAnalysis:
 
         return data
 
-    def match_imdb_to_wiki(self):
+    def match_imdb_to_wiki(self) -> pd.DataFrame:
         """
         Match wiki data to imdb data
 
@@ -189,7 +187,10 @@ class FilmAnalysis:
 
         return matched
 
-    def write_matches_to_pg(self, matches, if_exists='fail'):
+    def write_matches_to_pg(self, matches: pd.DataFrame, if_exists: str='fail') -> None:
+        """
+        Write to pg
+        """
 
         with self.engine.connect() as conn:
             matches.to_sql('matches', conn, if_exists=if_exists, index_label=IMDB_ID)
@@ -197,7 +198,10 @@ class FilmAnalysis:
         logging.info(f"Wrote {len(matches):,} to postgres.")
 
 
-    def run_sql(self, sql):
+    def run_sql(self, sql: str) -> pd.DataFrame:
+        """
+        Read from pg
+        """
 
         with self.engine.connect() as conn:
             data = pd.read_sql(sql, conn)

@@ -2,7 +2,7 @@ import numpy as np
 from scipy.sparse import csr_matrix
 import sparse_dot_topn.sparse_dot_topn as ct
 
-
+# From ING bank:: https://github.com/ing-bank/sparse_dot_topn
 def awesome_cossim_top(A, B, ntop, lower_bound=0):
     # force A and B as a CSR matrix.
     # If they have already been CSR, there is no overhead
