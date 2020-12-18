@@ -132,7 +132,7 @@ class FilmAnalysis:
                 # Give an idea of progress
                 if len(abstracts) % 500_000 == 0:
                     logging.info(f"Processed {len(abstracts):,} entries.")
-                    break
+                    #break
             else:
                 elem.clear(keep_tail=True)
 
