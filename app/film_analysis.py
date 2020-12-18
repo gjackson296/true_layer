@@ -11,20 +11,20 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from app.constants import *
 from app.utils import awesome_cossim_top
 
-logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s %(name)s %(message)s', level=logging.INFO)
 
 
 class FilmAnalysis:
-    IMDB_DATA = pathlib.Path('data/imdb')
-    WIKI_DATA = pathlib.Path('data/wiki')
+    DEFAULT_DATA_FOLDER = pathlib.Path('data')
 
-    def __init__(self, db_user, db_pass, db_host, db_name, db_port):
+    def __init__(self, db_user, db_pass, db_host, db_name, db_port, data_folder = None):
 
         self.engine = create_engine(f'postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}')
+        self.data_folder = data_folder or self.DEFAULT_DATA_FOLDER
         self.imdb = self._etl_imdb()
         self.wiki = self._etl_wiki()
 
-    def _etl_imdb(self, filename='movies_metadata.csv', top_n=10_000):
+    def _etl_imdb(self, filepath='movies_metadata.csv', top_n=10_000):
         """
         Load and clean imdb data
         """
@@ -40,10 +40,7 @@ class FilmAnalysis:
         }
 
         # Read raw data
-        data = pd.read_csv(
-            self.IMDB_DATA / filename,
-            usecols=want_cols.keys()
-        )[want_cols.keys()]
+        data = pd.read_csv(self.data_folder / filepath, usecols=want_cols.keys())[want_cols.keys()]
 
         logging.info(f"Read raw imdb data. Shape: {data.shape}")
 
@@ -114,7 +111,7 @@ class FilmAnalysis:
 
         logging.info("LOAD WIKI")
 
-        context = etree.iterparse(source=str(self.WIKI_DATA / filename))
+        context = etree.iterparse(source=str(self.data_folder / filename))
 
         # TODO count URL so you can show progress? Cache results?
 
@@ -123,21 +120,17 @@ class FilmAnalysis:
         counter = 0
         for event, elem in context:
 
-            # Give an idea of progress
-            if len(titles) % 100_000 == 0:
-                logging.info(f"Processed {len(titles):,} entries.")
-
             if elem.tag == 'title':
                 titles.append(elem.text)
+
+                # Give an idea of progress
+                if len(titles) % 500_000 == 0:
+                    logging.info(f"Processed {len(titles):,} entries.")
+
             elif elem.tag == 'url':
                 urls.append(elem.text)
             elif elem.tag == 'abstract':
                 abstracts.append(elem.text)
-
-                # TODO remove tmp limit
-                if len(urls) > 0 and len(urls) % 10_000 == 0:
-                    logging.info(f'len {len(urls)} cf {len(urls) % 100_000}')
-                    break
 
             else:
 
@@ -213,15 +206,14 @@ class FilmAnalysis:
         return matches
 
 if __name__ == '__main__':
-
     fa = FilmAnalysis(
         db_user='db_user',
         db_pass='db_pass',
-        db_host=os.environ.get('PG_HOST') or 'localhost',
+        db_host=os.environ.get('PG_HOST') or 'pg',
         db_name='data',
-        db_port=5432
+        db_port=5432,
+        data_folder=pathlib.Path('../data')
     )
 
     matches = fa.match_imdb_to_wiki()
     fa.write_matches_to_pg(matches, if_exists='replace')
-    matches = fa.read_matches_from_pg()
