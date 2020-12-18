@@ -1,11 +1,15 @@
 import logging
+import os
 import pathlib
 
 import numpy as np
 import pandas as pd
 from lxml import etree
+from sqlalchemy import create_engine
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 
 from app.constants import *
+from app.utils import awesome_cossim_top
 
 logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 
@@ -14,12 +18,13 @@ class FilmAnalysis:
     IMDB_DATA = pathlib.Path('../data/imdb')
     WIKI_DATA = pathlib.Path('../data/wiki')
 
-    def __init__(self):
+    def __init__(self, db_user, db_pass, db_host, db_name, db_port):
 
+        self.engine = create_engine(f'postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}')
         self.imdb = self._etl_imdb()
         self.wiki = self._etl_wiki()
 
-    def _etl_imdb(self, filename='movies_metadata.csv'):
+    def _etl_imdb(self, filename='movies_metadata.csv', top_n=10_000):
         """
         Load and clean imdb data
         """
@@ -90,10 +95,14 @@ class FilmAnalysis:
         data[col] = data[col].replace([np.inf, -np.inf], np.nan)
         logging.info(f"Add '{col}' (higher means the film performed better).")
 
+        # Keep top n
+        data = data.sort_values(by=col, ascending=False).head(top_n)
+        logging.info(f"Keep top {top_n} by '{col}'")
+
         return data
 
 
-    def _etl_wiki(self):
+    def _etl_wiki(self, filename='enwiki-latest-abstract.xml'):
         """
         Load wiki data
 
@@ -105,7 +114,7 @@ class FilmAnalysis:
 
         logging.info("LOAD WIKI")
 
-        context = etree.iterparse(source=str(self.WIKI_DATA / 'enwiki-latest-abstract.xml'))
+        context = etree.iterparse(source=str(self.WIKI_DATA / filename))
 
         # TODO count URL so you can show progress? Cache results?
 
@@ -148,6 +157,66 @@ class FilmAnalysis:
 
         return data
 
+    def match_imdb_to_wiki(self):
+        """
+        Match wiki data to imdb data
+
+        Use fast term-frequency inverse-document-frequency approach as per:
+            https://bergvca.github.io/2017/10/14/super-fast-string-matching.html
+        """
+
+        logging.info("MATCH WIKI TO IMDB")
+
+        imdb_titles = self.imdb.loc[:, IMDB_ORIGINAL_TITLE].tolist()
+        wiki_titles = self.wiki.loc[:, WIKI_TITLE].tolist()
+
+        cvect = CountVectorizer(analyzer='word')
+        vocabulary = cvect.fit(imdb_titles + wiki_titles).vocabulary_
+
+        vectorizer = TfidfVectorizer(min_df=1, vocabulary=vocabulary)
+        imdb_tf_idf_matrix = vectorizer.fit_transform(imdb_titles)
+        wiki_tf_idf_matrix = vectorizer.fit_transform(wiki_titles)
+
+        matches = awesome_cossim_top(wiki_tf_idf_matrix, imdb_tf_idf_matrix.transpose(), 1, 0.95)
+
+        # To join together
+        wiki_idx, imdb_idx = matches.nonzero()
+
+        # Prepare output
+        # Start with imdb data
+        matched = self.imdb.copy()
+        # Add the index of the nominal wiki match
+        col = 'nominal_wiki_idx'
+        matched[col] = np.nan
+        col_idx = matched.columns.get_loc(col)
+        matched.iloc[imdb_idx, col_idx] = wiki_idx
+        # Add wiki information
+        matched = matched.set_index(col).join(self.wiki, how='left')
+
+        return matched
+
+    def write_matches_to_pg(self, matches, if_exists='fail'):
+
+        with self.engine.connect() as conn:
+            matches.to_sql('matches', conn, if_exists=if_exists)
+
+    def read_matches_from_pg(self):
+
+        with self.engine.connect() as conn:
+            matches = pd.read_sql('matches', conn)
+
+        return matches
+
 if __name__ == '__main__':
-    fa = FilmAnalysis()
-    foo = 1
+
+    fa = FilmAnalysis(
+        db_user='db_user',
+        db_pass='db_pass',
+        db_host=os.environ.get('PG_HOST') or 'localhost',
+        db_name='data',
+        db_port=5432
+    )
+
+    matches = fa.match_imdb_to_wiki()
+    fa.write_matches_to_pg(matches, if_exists='replace')
+    matches = fa.read_matches_from_pg()
