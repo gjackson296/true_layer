@@ -8,6 +8,11 @@ verify_ssl = true
 [packages]
 pandas = "*"
 requests = "*"
+lxml = "*"
+pyarrow = "*"
+sklearn = "*"
+sparse-dot-topn = "*"
+nltk = "*"
 
 [requires]
 python_version = "3.6"
