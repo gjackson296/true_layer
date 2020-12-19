@@ -50,7 +50,7 @@ Copy-paste the link into a browser to open jupyter.
 
 Once the jupyter notebook server is running, open and run the `analysis.ipynb`.
 
-It takes about 15 minutes to run on a decent laptop.
+It takes about 10 minutes to run on a decent laptop.
 
 This will analyse the data and store the results in postgres.
 
@@ -80,7 +80,7 @@ PG_HOST=localhost pipenv run jupyter notebook
 
 ### Decisions
 
-- `lxml` is faster and more efficient when parsing xml than `ElementTree`
+- `lxml` is faster and more efficient when parsing xml than `ElementTree`.
 
 - `TfidfVectorizer` is [faster](https://towardsdatascience.com/fuzzy-matching-at-scale-84f2bfd0c536) than standard 
 fuzzy matching techniques.
@@ -96,10 +96,12 @@ vs
 https://en.wikipedia.org/wiki/Apollo_13_(film)
 ```
 
-- Add production company info
-
 - Persist db results to volume so you don't have to run analysis from scratch each time.
 
 - Add pytests.
 
 - Add threshold for revenue to budget ratios; e.g. minimum budget of 10,000 dollars.
+
+### Troubleshooting
+
+- Make sure docker (e.g. Docker Desktop) has access to at least 8Gb RAM.

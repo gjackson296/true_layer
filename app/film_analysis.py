@@ -42,7 +42,7 @@ class FilmAnalysis:
             IMDB_ORIGINAL_TITLE: str,
             IMDB_BUDGET: float,
             IMDB_REVENUE: float,
-            #IMDB_PROD_COMP: str
+            IMDB_PROD_COMP: str
         }
 
         # Read raw data
